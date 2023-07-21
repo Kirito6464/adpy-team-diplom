@@ -32,9 +32,6 @@ def add_user(user_id, first_name, sex, age, city):
         session.commit()
 
 
-add_user(1, '1', '1', 1, '1')
-
-
 def add_offer(user_id, offer_id, first_name, last_name, sex, age, city):
     """
     Функция добавляет предложение в базу данных. В данном случае offer - это предложенный пользователю человек из
