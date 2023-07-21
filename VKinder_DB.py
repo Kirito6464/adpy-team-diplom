@@ -3,7 +3,7 @@ import sqlalchemy as sq
 import json
 import models as m
 
-DSN = "postgresql://postgres:1507@localhost:5432/netology_db"
+DSN = "postgresql://postgres:***@localhost:5432/netology_db"
 engine = sq.create_engine(DSN)
 Session = sessionmaker(bind=engine)
 def add_user(user_id, first_name, sex, age, city):
