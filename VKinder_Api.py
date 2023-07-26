@@ -9,17 +9,12 @@ with open('ApiKey.txt', 'r') as file_object:
 
 with open('TokenUser.txt', 'r') as file_object:
     token_user = file_object.read().strip()
+
 vk_user = vk_api.VkApi(token=token_user)
 session_api = vk_user.get_api()
+
 vk = vk_api.VkApi(token=token)
 longpoll = VkLongPoll(vk)
-
-
-
-def get_user_token():
-    token_vk = vk.code_auth( '6287487','https://oauth.vk.com/blank.html')
-    return token_vk
-
 
 def get_photo(user_id):
     """
@@ -28,32 +23,24 @@ def get_photo(user_id):
     """
     photo_info = session_api.photos.get(owner_id=user_id, album_id='profile', photo_sizes=True, extended=True,
                                         access_token=token_user)
-    json_info = []
+    link_all_photo = []
     for photo in photo_info['items'][-3:]:
         max_height = max(dict_h['height'] for dict_h in photo['sizes'])
         max_width = max(dict_w['width'] for dict_w in photo['sizes'])
-        count_likes = str(photo['likes']['count'])
         for photo_max in photo['sizes']:
             if photo_max['height'] == max_height and photo_max['width'] == max_width:
-                name_sizes = photo_max['type']
                 link_photo = photo_max['url']
-                info_photo = {
-                    'size': name_sizes,
-                    'count_likes': count_likes,
-                    'url_photo': link_photo
-
-                }
-                for name_file in json_info:
-                    if info_photo['file_name'] == name_file['file_name']:
-                        info_photo['file_name'] = str(count_likes) + '_'
-                json_info.append(info_photo)
+                link_all_photo.append(link_photo)
                 break
-    return json_info
+    return link_all_photo
 
 
 def write_msg(user_id, message, keyboard=None):
     vk.method('messages.send',
               {'user_id': user_id, 'message': message, 'random_id': randrange(10 ** 7), 'keyboard': keyboard})
+
+def send_photo(user_id, url_link: str):
+    vk.method('messages.send', {'user_id': user_id, 'message': "Фото", 'random_id': randrange(10 ** 7), 'attachment': str(url_link)})
 
 
 def get_info(user_id):
@@ -87,7 +74,7 @@ def get_info(user_id):
 def get_search(name_city, age, gender, offset=0):
     """
         Функция производит поиск предложений на основе информации о пользователе и возвращает 5 предложений при дальнейшем поиске offset увеличивается на 5,
-    Возвращает id предложения, ФИ, ссылку фото, возраст и ссылку на профиль
+    возвращает id предложения, ФИ, ссылку фото, возраст и ссылку на профиль
     :param name_city: Город
     :param age: Возраст
     :param gender: Пол
@@ -95,11 +82,15 @@ def get_search(name_city, age, gender, offset=0):
 
     """
     users_info = session_api.users.search(hometown=name_city, sex=gender, status=6, age_from=age - 3, age_to=age + 3,
-                                          count=5, offset=offset, fields=('photo_max_orig', 'bdate', 'city', 'sex'))
+                                          count=5, offset=offset, fields=('photo_max_orig', 'bdate', 'city', 'sex', 'home_town'))
     profiles_list = []
     for user_info in users_info['items']:
-        if user_info["is_closed"]:
+        if user_info['is_closed']:
             continue
+        if user_info.get('city') is None:
+            city = {'title': user_info['home_town']}
+        else:
+            city = user_info['city']
         birthday = user_info['bdate']
         pattern_age = r'(\d+)\.(\d+)\.(\d{4})'
         today = date.today()
@@ -112,7 +103,7 @@ def get_search(name_city, age, gender, offset=0):
             'first_name': user_info['first_name'],
             'last_name': user_info['last_name'],
             'photo_link': user_info['photo_max_orig'],
-            'city': user_info['city'],
+            'city': city,
             'gender': gender,
             'agе': age,
             'url_profile': 'https://vk.com/id' + id_offer
